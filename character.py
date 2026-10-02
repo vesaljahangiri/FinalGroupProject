@@ -1,3 +1,4 @@
+import random
 class Character:
     def __init__(self,name,hp,max_hp,attack,defence):
         self.name=name
@@ -14,10 +15,15 @@ class Character:
             print("you are alive")
             flag=True
         return flag
-    def take_damage(self,amount):
+    def Take_damage(self,amount):
         self.amount=amount
         self.hp=self.hp-self.amount
         self.Is_alive()
+    def Attack_target(self,target):
+        min=target-3
+        max=target+3
+        damage=random.randint(min,max)
+        target.Take_damage(damage)
             
             
             
