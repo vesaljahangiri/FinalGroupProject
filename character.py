@@ -44,6 +44,36 @@ class Hero(Character):
         self.level=self.level+1
         self.hp_max=math.ceil(self.hp_max*1.15)
         self.hp=self.hp_max
+    def use_item(self,name_item,data_item):
+        if name_item not in self.inventory:
+            print("item not found")
+            return
+        else:
+            item=data_item[name_item]
+            if item["type"]=="heal":
+                self.hp=self.hp+item["power"]
+                if self.hp>self.max_hp:
+                    self.hp=self.max
+            self.inventory[name_item]=self.inventory[name_item]-1
+            if self.inventory[name_item]==0:
+                del self.inventory[name_item]
+    def Equip(self,name_item,data_item):
+        if name_item not in self.inventory:
+                    print("item not found")
+                    return
+        item=data_item[name_item]
+        if item["type"]=="armor":
+            self.defence=self.defence+item["power"]
+        elif item["type"]=="weapen":
+            self.attack=self.attack+item["power"]
+    def Inventory_weight(self,data_item):
+        total=0
+        for name_item,quantity in self.inventory.items():
+            total=total+data_item[name_item]["weight"]*quantity
+            
+        return total
+            
+        
         
             
             
