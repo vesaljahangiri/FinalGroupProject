@@ -94,7 +94,21 @@ class Boss(Enemy):
         super().__init__(name,hp,max_hp,attack,defence,xp_reward,gold_reward)
 
         self.turn=0
-     
+def Attack_target(self,target):
+    self.turn=self.turn+1
+
+    min=self.attack-3
+    max=self.attack+3
+
+    damage=random.randint(min,max)
+    if self.turn%2==0:
+        damage=damage*2
+        print("special attack!")
+    damage=damage-target.defence
+
+    if damage<1:
+        damage=1
+    target.Take_damage(damage)
             
             
             
