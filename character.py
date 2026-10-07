@@ -27,14 +27,14 @@ class Character:
         damage=damage-target.defence
         if damage<1:
             damage=1
-        if random.randint(1,10)==1:
+        if random.random()<0.1:
             damage=damage*2
             print("critical hit!")
             
         target.Take_damage(damage)
 class Hero(Character):
-    def __init__(self,name,hp,hp_max,attack,defence):
-        super().__init__(name,hp,hp_max,attack,defence)
+    def __init__(self,name,hp,max_hp,attack,defence):
+        super().__init__(name,hp,max_hp,attack,defence)
         self.xp=0
         self.gold=0
         self.level=1
@@ -50,8 +50,8 @@ class Hero(Character):
             self.Level_up()
     def Level_up(self):
         self.level=self.level+1
-        self.max_hp=math.ceil(self.hp_max*1.15)
-        self.hp=self.hp_max
+        self.max_hp=math.ceil(self.max_hp*1.15)
+        self.hp=self.max_hp
     def use_item(self,name_item,data_item):
         if name_item not in self.inventory:
             print("item not found")
@@ -62,14 +62,14 @@ class Hero(Character):
                 self.hp=self.hp+item["power"]
                 if self.hp>self.max_hp:
                     self.hp=self.max_hp
-            self.inventory[name_item]=self.inventory[name_item]-1
-            if self.inventory[name_item]==0:
-                del self.inventory[name_item]
-            print("item used")
+                self.inventory[name_item]=self.inventory[name_item]-1
+                if self.inventory[name_item]==0:
+                    del self.inventory[name_item]
+                print("item used")
     def Equip(self,name_item,data_item):
         if name_item not in self.inventory:
-                    print("item not found")
-                    return
+            print("item not found")
+            return
         item=data_item[name_item]
         if item["type"]=="armor":
             self.defence=self.defence+item["power"]
@@ -94,22 +94,22 @@ class Boss(Enemy):
         super().__init__(name,hp,max_hp,attack,defence,xp_reward,gold_reward)
 
         self.turn=0
-def Attack_target(self,target):
-    self.turn=self.turn+1
+    def Attack_target(self,target):
+        self.turn=self.turn+1
 
-    min=self.attack-3
-    max=self.attack+3
+        min=self.attack-3
+        max=self.attack+3
 
-    damage=random.randint(min,max)
-    if self.turn%2==0:
-        damage=damage*2
-        print("special attack!")
-    damage=damage-target.defence
+        damage=random.randint(min,max)
+        if self.turn%2==0:
+            damage=damage*2
+            print("special attack!")
+        damage=damage-target.defence
 
-    if damage<1:
-        damage=1
-    target.Take_damage(damage)
-            
+        if damage<1:
+            damage=1
+        target.Take_damage(damage)
+
             
             
         
