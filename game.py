@@ -66,3 +66,94 @@ def get_text(prompt):
             print("از علامت | استفاده نکنید.")
         else:
             return text
+
+
+def position_to_text(position):
+    """(0, 1) رو میکنه "0,1" """
+    return str(position[0]) + "," + str(position[1])
+
+
+def text_to_position(text):
+    """متن "0,1" رو میکنه (0, 1)"""
+    parts = text.split(",")
+    if len(parts) != 2:
+        raise ValueError("bad position")
+    return (int(parts[0]), int(parts[1]))
+
+
+def positions_to_text(positions):
+    """set مختصات ها رو میکنه متن مثل "0,0;0,1" """
+    parts = []
+    for position in positions:
+        parts.append(position_to_text(position))
+    return ";".join(parts)
+
+
+def text_to_positions(text):
+    """متن "0,0;0,1" رو برمیگردونه به set"""
+    positions = set()
+    if text == "":
+        return positions
+    for part in text.split(";"):
+        positions.add(text_to_position(part))
+    return positions
+
+
+def inventory_to_text(inventory):
+    """کوله پشتی رو میکنه متن مثل "potion:2" """
+    parts = []
+    for item_name, count in inventory.items():
+        parts.append(item_name + ":" + str(count))
+    return ",".join(parts)
+
+
+def text_to_inventory(text):
+    """متن "potion:2" رو برمیگردونه به دیکشنری"""
+    inventory = {}
+    if text == "":
+        return inventory
+    for part in text.split(","):
+        item_name, count = part.split(":")
+        inventory[item_name] = int(count)
+    return inventory
+
+
+# ---------- کلاس اصلی بازی ----------
+class Game:
+    """کلاس اصلی بازی"""
+
+    def __init__(self):
+        self.hero = None
+        self.defeated = set()   # جاهایی که دشمنش کشته شده
+        self.running = True
+        # world و بقیه رو بچه ها اضافه میکنن
+
+    # ===== ذخیره =====
+    def save_menu(self):
+        """میپرسه کدوم اسلات و سیو میکنه"""
+        slot = get_int("در کدام اسلات ذخیره شود؟ (1 تا 3): ", 1, 3)
+        self.save_game(slot)
+
+    def save_game(self, slot):
+        """سیو کردن بازی تو اسلات"""
+        hero = self.hero
+        lines = [
+            "name | " + hero.name,
+            "hp | " + str(hero.hp),
+            "max_hp | " + str(hero.max_hp),
+            "attack | " + str(hero.attack),
+            "defence | " + str(hero.defence),
+            "level | " + str(hero.level),
+            "xp | " + str(hero.xp),
+            "gold | " + str(hero.gold),
+            "position | " + position_to_text(hero.position),
+            "inventory | " + inventory_to_text(hero.inventory),
+            "visited | " + positions_to_text(hero.visited),
+            "defeated | " + positions_to_text(self.defeated),
+        ]
+        try:
+            with open(SAVE_FILES[slot - 1], "w", encoding="utf-8") as file:
+                file.write("\n".join(lines) + "\n")
+            print("بازی در اسلات", slot, "ذخیره شد.")
+        except OSError:
+            print("خطا: ذخیره انجام نشد.")
