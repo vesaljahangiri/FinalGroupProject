@@ -232,3 +232,72 @@ class Game:
             raise ValueError("bad numbers")
         self.hero = hero
         self.defeated = text_to_positions(data["defeated"])
+
+    # ===== جدول رکوردها =====
+    def calculate_score(self):
+        """حساب کردن امتیاز: سطح * 100 + طلا + جاهای دیده شده * 20"""
+        hero = self.hero
+        return hero.level * 100 + hero.gold + len(hero.visited) * 20
+
+    def add_to_leaderboard(self):
+        """اضافه کردن امتیاز به جدول"""
+        score = self.calculate_score()
+        line = self.hero.name + " | " + str(score) + " | " + str(self.hero.level)
+        try:
+            with open(LEADERBOARD_FILE, "a", encoding="utf-8") as file:
+                file.write(line + "\n")
+        except OSError:
+            print("خطا: رکورد ذخیره نشد.")
+        return score
+
+    def read_leaderboard(self):
+        """خوندن جدول رکورد ها از فایل"""
+        records = []
+        try:
+            with open(LEADERBOARD_FILE, "r", encoding="utf-8") as file:
+                line_number = 0
+                for line in file:
+                    line_number = line_number + 1
+                    line = line.strip()
+                    if line == "":
+                        continue
+                    parts = line.split("|")
+                    try:
+                        records.append((int(parts[1]), parts[0].strip(), int(parts[2])))
+                    except (IndexError, ValueError):
+                        print("هشدار: خط", line_number, "فایل", LEADERBOARD_FILE, "نامعتبر بود و نادیده گرفته شد.")
+        except FileNotFoundError:
+            open(LEADERBOARD_FILE, "w", encoding="utf-8").close()
+        return records
+
+    def show_leaderboard(self):
+        """نشون دادن 10 تا رکورد اول"""
+        records = self.read_leaderboard()
+        records.sort(reverse=True)
+        print("\n===== برترین بازیکنان =====")
+        if len(records) == 0:
+            print("هنوز رکوردی ثبت نشده.")
+            return
+        rank = 1
+        for score, name, level in records[:TOP_PLAYERS]:
+            print(str(rank) + ".", name, "| امتیاز:", score, "| سطح:", level)
+            rank = rank + 1
+
+    def show_status(self):
+        """نشون دادن وضعیت قهرمان"""
+        hero = self.hero
+        print(hero.name, "| جان:", hero.hp, "/", hero.max_hp, "| سطح:", hero.level,
+              "| تجربه:", hero.xp, "| طلا:", hero.gold)
+        print("کوله‌پشتی:", hero.inventory)
+
+    def game_over(self, won):
+        """آخر بازی: نشون دادن امتیاز و ثبت تو جدول"""
+        if won:
+            print("\nتبریک! غول آخر را شکست دادی!")
+        else:
+            print("\nقهرمان شکست خورد...")
+        self.show_status()
+        score = self.add_to_leaderboard()
+        print("امتیاز نهایی:", score)
+        self.show_leaderboard()
+        self.running = False
