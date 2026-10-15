@@ -128,6 +128,89 @@ class Game:
         self.running = True
         # world و بقیه رو بچه ها اضافه میکنن
 
+    # ===== کنترل بازی =====
+    def run(self):
+        """کنترل بازی: منوی شروع و بعد گرفتن دستور ها"""
+        self.start_menu()
+        print("برای دیدن دستورها «راهنما» را بنویسید.")
+        while self.running:
+            command = input("\nدستور شما: ").strip()
+            try:
+                self.do_command(command)
+            except InvalidCommandError:
+                print("دستور نامعتبر است. برای دیدن دستورها «راهنما» را بنویسید.")
+            except InvalidMoveError:
+                print("از این طرف راهی نیست.")
+            except InventoryFullError:
+                print("کوله‌پشتی پر است! اول یک آیتم را دور بیندازید.")
+            except NotEnoughGoldError:
+                print("طلای کافی ندارید.")
+
+    def do_command(self, command):
+        """دستور رو اجرا میکنه"""
+        if command in ["شمال", "n"]:
+            self.move("شمال")
+        elif command in ["جنوب", "s"]:
+            self.move("جنوب")
+        elif command in ["شرق", "e"]:
+            self.move("شرق")
+        elif command in ["غرب", "w"]:
+            self.move("غرب")
+        elif command == "نقشه":
+            self.show_map()
+        elif command == "فروشگاه":
+            self.shop()
+        elif command == "وضعیت":
+            self.show_status()
+        elif command == "ذخیره":
+            self.save_menu()
+        elif command == "رکوردها":
+            self.show_leaderboard()
+        elif command == "راهنما":
+            self.show_help()
+        elif command == "خروج":
+            self.running = False
+            print("خداحافظ!")
+        else:
+            raise InvalidCommandError()
+
+    def show_help(self):
+        """راهنمای دستور ها"""
+        print("دستورها:")
+        print("  شمال / جنوب / شرق / غرب  (یا n / s / e / w)  حرکت")
+        print("  نقشه       نمایش نقشه")
+        print("  فروشگاه    خرید و فروش (فقط در دهکده)")
+        print("  وضعیت      نمایش وضعیت قهرمان")
+        print("  ذخیره      ذخیره‌ی بازی در یکی از سه اسلات")
+        print("  رکوردها    جدول برترین بازیکنان")
+        print("  راهنما     همین لیست")
+        print("  خروج       خروج از بازی")
+
+    def start_menu(self):
+        """منوی شروع بازی"""
+        while True:
+            print("\n===== منوی شروع =====")
+            print("1. بازی جدید")
+            print("2. ادامه‌ی بازی ذخیره‌شده")
+            print("3. جدول رکوردها")
+            choice = get_int("انتخاب شما: ", 1, 3)
+            if choice == 1:
+                self.new_game()
+                return
+            elif choice == 2:
+                if self.load_menu():
+                    return
+                print("می‌توانید یک بازی جدید شروع کنید.")
+            else:
+                self.show_leaderboard()
+
+    def new_game(self):
+        """ساختن قهرمان جدید"""
+        name = get_text("نام قهرمان: ")
+        self.hero = Hero(name, START_HP, START_HP, START_ATTACK, START_DEFENCE)
+        self.defeated = set()
+        print("خوش آمدی", name + "! ماجراجویی از دهکده شروع می‌شود.")
+
     # ===== ذخیره =====
     def save_menu(self):
         """میپرسه کدوم اسلات و سیو میکنه"""
@@ -301,3 +384,12 @@ class Game:
         print("امتیاز نهایی:", score)
         self.show_leaderboard()
         self.running = False
+
+
+def main():
+    """شروع برنامه"""
+    game = Game()
+    game.run()
+
+
+main()
