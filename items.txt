@@ -1,1 +1,6 @@
 
+# item_id | display name | type | effect power | price | weight
+rusted_blade | Rusted Blade | weapon | 4 | 30 | 3
+shield | Shield | armor | 3 | 35 | 4
+holy_water | Holy Water | heal | 45 | 20 | 1
+scalpel | Surgical Scalpel | weapon | 8 | 0 | 2
