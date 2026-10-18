@@ -1,193 +1,150 @@
-items = {
-    "item 1": {
-        "name": "Sword",
-        "type": "Weapon",
-        "power": 50,
-        "weight": 10,
-        "price": 100
-    },
-    "item 2": {
-        "name": "Shield",
-        "type": "Defense",
-        "power": 20,
-        "weight": 15,
-        "price": 80
-    },
-    "item 3": {
-        "name": "Potion",
-        "type": "Health",
-        "power": 30,
-        "weight": 1,
-        "price": 50
-    },
-    "item 4": {
-        "name": "Armor",
-        "type": "Defense",
-        "power": 40,
-        "weight": 20,
-        "price": 200
+"""Item catalogue, inventory, and shop functions."""
+import os
+from config import BASE_DIR, ITEMS_FILE, MAX_INVENTORY_WEIGHT
+from errors import InventoryFullError, NotEnoughGoldError
+def _parse_item_line(parts, line_number):
+    """Validate one item row and return its normalized record."""
+    if len(parts) != 6:
+        print(f"Warning: invalid row {line_number} in items.txt; skipping it.")
+        return None
+    item_id, name, item_type = parts[:3]
+    try:
+        power, price, weight = map(int, parts[3:])
+    except ValueError:
+        print(f"Warning: invalid number in items.txt row {line_number}.")
+        return None
+    item_type = item_type.lower()
+    if not item_id or not name or item_type not in ("heal", "weapon", "armor"):
+        print(f"Warning: invalid item data in row {line_number}.")
+        return None
+    if min(power, price, weight) < 0 or weight == 0:
+        print(f"Warning: invalid values in items.txt row {line_number}.")
+        return None
+    return item_id.lower(), {
+        "name": name, "type": item_type, "power": power,
+        "price": price, "weight": weight,
     }
-}
-#--------------------------------------------------------------------------------------------------------------#
-inventory = {}
-gold = 500
-#-------------------------------------------------- SHOW SHOP --------------------------------------------------#
-def Show_shop():
-    print("---- SHOP ----")
-    for item in items:
-        print("Name:", items[item]["name"])
-        print("Type:", items[item]["type"])
-        print("Power:", items[item]["power"])
-        print("Weight:", items[item]["weight"])
-        print("Price:", items[item]["price"])
-        print("------------------------")
-#-------------------------------------------- SHOW INVENTORY ----------------------------------------------------#
-def Show_inventory():
-    print("----- INVENTORY ------")
-    if len(inventory) == 0:
-        print("Your inventory is empty")
-    else:
-        for item in inventory:
-            print("Name:", items[item]["name"])
-            print("Type:", items[item]["type"])
-            print("Power:", items[item]["power"])
-            print("Weight:", items[item]["weight"])
-            print("Price:", items[item]["price"])
-            print("count: " , inventory[item])
-            print("------------------------")
-#-------------------------------------------- BUY ITEM ----------------------------------------------------------#
-def buy_item():
-    global gold
-    Show_shop()
-    name=input("enter item name:").lower().strip()
-    for item in items:
-        if items[item]["name"].lower().strip() == name:
-            if gold >= items[item]["price"]:
-                gold = gold - items[item]["price"]
-                if item in inventory:
-                    inventory[item] = inventory[item] + 1
-                else:
-                    inventory[item] = 1
-                print("purchase successfully")
+def load_items(filename=None):
+    """Load item records; skip malformed rows without losing valid records."""
+    filename = filename or os.path.join(BASE_DIR, "items.txt")
+    items = {}
+    try:
+        with open(filename, "r", encoding="utf-8") as file:
+            for line_number, line in enumerate(file, start=1):
+                if not line.strip() or line.lstrip().startswith("#"):
+                    continue
+                record = _parse_item_line([part.strip() for part in line.split("|")], line_number)
+                if record is None:
+                    continue
+                item_id, item = record
+                if item_id in items:
+                    print(f"Warning: duplicate item ID {item_id} in items.txt; skipping it.")
+                    continue
+                items[item_id] = item
+    except FileNotFoundError:
+        print("Warning: items.txt was not found; the item catalog is empty.")
+        try:
+            open(filename, "a", encoding="utf-8").close()
+        except OSError:
+            pass
+    return items
+def show_shop(items):
+    """Print all item definitions loaded from items.txt."""
+    print("\n===== Shop =====")
+    if not items:
+        print("No items are defined in items.txt.")
+        return
+    for item_id, item in items.items():
+        print(f"{item_id} - {item['name']} | Type: {item['type']} | Effect: {item['power']} | Price: {item['price']} | Weight: {item['weight']}")
+def show_inventory(hero, items):
+    """Print carried items, equipment status, total weight, and gold."""
+    print("\n===== Inventory =====")
+    if not hero.inventory:
+        print("Your inventory is empty.")
+    for item_id, quantity in hero.inventory.items():
+        item = items.get(item_id)
+        if item is None:
+            print(f"{item_id} | Quantity: {quantity} | Warning: not defined in items.txt")
+            continue
+        marker = " (equipped)" if item_id in hero.equipped else ""
+        print(f"{item['name']} | Quantity: {quantity} | Weight each: {item['weight']}{marker}")
+    print(f"Total weight: {hero.inventory_weight(items)} / {MAX_INVENTORY_WEIGHT}")
+    print("Gold:", hero.gold)
+def find_item_key(name, items):
+    """Find an item by ID or display name, ignoring letter case."""
+    name = name.strip().casefold()
+    for item_id, item in items.items():
+        if name in (item_id.casefold(), item["name"].casefold()):
+            return item_id
+    return None
+def add_item(hero, item_id):
+    """Add one item unit to the hero inventory."""
+    hero.inventory[item_id] = hero.inventory.get(item_id, 0) + 1
+def buy_item(hero, items, logger=None):
+    """Buy one item if the hero has enough gold and carrying capacity."""
+    show_shop(items)
+    item_key = find_item_key(input("Item name or ID to buy: "), items)
+    if item_key is None:
+        print("Item not found.")
+        return False
+    item = items[item_key]
+    if hero.gold < item["price"]:
+        raise NotEnoughGoldError("You do not have enough gold.")
+    if hero.inventory_weight(items) + item["weight"] > MAX_INVENTORY_WEIGHT:
+        raise InventoryFullError("Your inventory is full. Drop an item first.")
+    hero.gold -= item["price"]
+    add_item(hero, item_key)
+    print("Purchased:", item["name"])
+    if logger:
+        logger(f"Purchase | {hero.name} | {item_key} | price={item['price']}")
+    return True
+def sell_item(hero, items, logger=None):
+    """Sell one item unit for half its listed price."""
+    show_inventory(hero, items)
+    if not hero.inventory:
+        return False
+    item_key = find_item_key(input("Item name or ID to sell: "), items)
+    if item_key is None or hero.inventory.get(item_key, 0) <= 0:
+        print("That item is not in your inventory.")
+        return False
+    item = items[item_key]
+    if item_key in hero.equipped and hero.inventory[item_key] == 1:
+        hero.unequip(item_key, items)
+    hero.inventory[item_key] -= 1
+    if hero.inventory[item_key] == 0:
+        del hero.inventory[item_key]
+    sell_price = item["price"] // 2
+    hero.gold += sell_price
+    print(f"Item sold. You received {sell_price} gold.")
+    if logger:
+        logger(f"Sale | {hero.name} | {item_key} | price={sell_price}")
+    return True
+def open_shop(hero, items, logger=None):
+    """Run the shop menu until the user chooses to leave."""
+    while True:
+        print("\n===== Shop Menu =====")
+        print("1. List items")
+        print("2. Buy")
+        print("3. Sell")
+        print("4. Inventory")
+        print("5. Leave shop")
+        choice = input("Choose an option: ").strip()
+        try:
+            if choice == "1":
+                show_shop(items)
+            elif choice == "2":
+                buy_item(hero, items, logger)
+            elif choice == "3":
+                sell_item(hero, items, logger)
+            elif choice == "4":
+                show_inventory(hero, items)
+            elif choice == "5":
+                print("You left the shop.")
+                return
             else:
-                print("not enouth gold!")
-            return
-    print("item not found!")
-#--------------------------------------------------- SELL ITEM -------------------------------------------------#
-def sell_item():
-    global gold
-    Show_inventory()
-    name= input("enter item name to sell: ").lower().strip()
-    for item in inventory:
-        if items[item]["name"].lower() == name:
-            gold = gold + items[item]["price"]
-            if item in inventory:
-                inventory[item] = inventory[item] - 1
+                print("Invalid choice. Enter a number from 1 to 5.")
+        except (InventoryFullError, NotEnoughGoldError) as error:
+            print(str(error))
+            if logger:
+                logger(f"Shop error | {type(error).__name__} | {error}")
 
-            if inventory[item] == 0:
-                del inventory[item]
-            print("item sold successfully")
-            return
-        print("item not found!")
-#-----------------------------------------------------SAVE INVENTORY -----------------------------------------#
-def save_inventory():
-    file = open("inventory.txt" , "w")
-    file.write(str(gold) + "\n")
-    for item in inventory:
-        file.write(item + "," + str(inventory[item]) + "\n")
-    file.close()
-    print("Inventory saved successfully!")
-#------------------------------------------------------ LOAD INVENTORY ----------------------------------------#
-def load_inventory():
-    global gold , inventory 
-    inventory = {}
-    try:
-        file = open("inventory.txt" , "r")
-        gold = int(file.readline())
-        for line in file:
-            data = line.strip().split(",")
-            inventory[data[0]] = int(data[1])
-        file.close()
-        print("inventory loaded successfully!")
-    except FileNotFoundError:
-        print("no saved inventory found!")
-#-------------------------------------------------------- ADD ITEM -----------------------------------------------#
-def add_item():
-    name=input("enter item name: ").lower().strip()
-    type=input("enter item type: ").lower().strip()
-    power=int(input("enter item power: "))
-    weight=int(input("enter item weight: "))
-    price=int(input("enter item price: "))
-    for item in items:
-        if items[item]["name"].lower() == name.lower():
-            print("This item already exists!")
-            return
-    number = len(items) + 1
-    items["item " + str(number)] = {
-        "name": name,
-        "type": type,
-        "power": power,
-        "weight": weight,
-        "price": price
-    }
-    print("item added successfully")
-#------------------------------------------------------------ LOAD ITEMS ------------------------------------------#
-def load_items():
-    global items
-    item = {}
-    try:
-        file = open("item.txt", "r")
-        for line in file:
-            data = line.strip().split(",")
-            items[data[0]] = {"name": data[1] , "type": data[2] , "power": int(data[3]) ,
-                            "weight": int(data[4]) , "price": int(data[5])}
-        file.close()
-        print("shop loaded successflly!")
-    except FileNotFoundError:
-        print("NO saved shop found!")
-#------------------------------------------------------------ SAVE ITEM ------------------------------------------#
-def save_items():
-    file = open("item.txt" , "w")
-    for item in items:
-        file.write(item + "," + items[item]["name"] + "," +
-                    items[item]["type"] + "," +
-                    str(items[item]["power"]) + "," + 
-                    str(items[item]["weight"]) + "," + 
-                    str(items[item]["price"]) + "\n")
-    file.close()
-    print("shop saved successfully")
-#------------------------------------------------------------------------------------------------------------------#
-try:
-    file=open("item.txt" , "r")
-    file.close()
-except FileNotFoundError:
-    save_items()
-#-------------------------------------------------- MENU ----------------------------------------------------------#
-while 1:
-    print("======= GAME MENU =======")
-    print("1.Show Menu , 2.Show Inventory , 3.Buy Item , 4.Sell Item , 5.Show Gold , 6.Save Game , 7.Load Game , 8.Add Item to Shop , 9.Exit")
-    code = input("choose code foe work: ").lower().strip()
-
-    if code == "1":
-        Show_shop()
-    elif code == "2":
-        Show_inventory()
-    elif code == "3":
-        buy_item()
-    elif code == "4":
-        sell_item()
-    elif code == "5":
-        print("count of gold =" , gold)
-    elif code == "6":
-        save_items()
-        save_inventory()
-    elif code == "7":
-        load_items()
-        load_inventory()
-    elif code == "8":
-        add_item()
-    elif code == "9":
-        print("finish your work")
-        break
-    else:
-        print("error number!")
