@@ -1,1 +1,13 @@
-
+0,0 | Last Survivors Village | The last lights of civilization still glow in the windows. You can prepare and shop here. | - | -
+0,1 | Sacred Forest | Burnt trees lean beneath a grey sky. The Forgotten attack anyone they do not recognize. | forgotten | -
+0,2 | Prayer Hall Ruins | Prayers carved into the stones lie buried beneath ash. Something moves between the pillars. | forgotten | holy_water
+1,2 | Quarantine Street | Warning signs and traces of the scientist’s secret experiments remain. | mutant | -
+2,2 | Abandoned Laboratory | Broken tanks and classified files reveal how the mutants were created. | mutant | -
+2,1 | Field Clinic | An overturned cabinet holds a few vials of holy water. | - | holy_water
+2,0 | Broken Bridge | A narrow path leads to the Tower of Babel. Generators hum in the distance. | - | -
+3,0 | Tower Outer Gate | The first security robots patrol the entrance to the tower. | sentinel | -
+3,1 | Security Corridor | Red lights blink overhead. No human is allowed beyond this point. | sentinel | -
+3,2 | Generator Hall | Heat rises through the metal floor. The last Sentinel stands among the cables. | sentinel | holy_water
+4,2 | Angel Engine Chamber | Barachiel, an artificial angel, guards the engine core. Clear the earlier encounters and reach the required level before entering. | barachiel | -
+4,3 | Hidden Control Room | Behind the broken panels are the scientist’s old drawers and shelves. The key may be hidden here. | - | -
+4,4 | Engine Core | The heart of the Angel Engine pulses between metal rings. With the key, you can shut it down and free Uriel. | - | -
